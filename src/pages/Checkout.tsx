@@ -46,6 +46,7 @@ const Checkout = () => {
       data,
       products: productsInCart,
       subtotal: subtotal,
+      teamName: (data.teamName as string) || undefined,
     };
 
     if (!checkCheckoutFormData(checkoutData)) return;
@@ -91,6 +92,25 @@ const Checkout = () => {
               <h2 className="text-lg font-medium text-gray-900">
                 Contact information
               </h2>
+
+              <div className="mt-4">
+                <label
+                  htmlFor="team-name"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Nom de l'équipe / événement{" "}
+                  <span className="text-gray-400 font-normal">(optionnel)</span>
+                </label>
+                <div className="mt-1">
+                  <input
+                    type="text"
+                    id="team-name"
+                    name="teamName"
+                    placeholder="Ex : Onboarding Promo 2025, Événement client eXalt..."
+                    className="block w-full py-2 indent-2 border-gray-300 outline-none focus:border-gray-400 border border shadow-sm sm:text-sm"
+                  />
+                </div>
+              </div>
 
               <div className="mt-4">
                 <label

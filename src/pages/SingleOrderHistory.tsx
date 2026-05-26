@@ -35,27 +35,42 @@ const SingleOrderHistory = () => {
           Order ID: {singleOrder.id}
         </h2>
         <p className="mb-2">Date: {formatDate(singleOrder.orderDate)}</p>
-        <p className="mb-2">Subtotal: ${ singleOrder.subtotal }</p>
-        <p className="mb-2">Shipping: $5</p>
-        <p className="mb-2">Tax: ${ singleOrder.subtotal / 5 }</p>
+        {singleOrder.teamName && (
+          <p className="mb-2 inline-flex items-center gap-2">
+            <span className="font-medium">Équipe / événement :</span>
+            <span className="rounded-full bg-indigo-50 px-3 py-0.5 text-sm font-medium text-indigo-700">
+              {singleOrder.teamName}
+            </span>
+          </p>
+        )}
+        <p className="mb-2">Subtotal: {singleOrder.subtotal}€</p>
+        <p className="mb-2">Shipping: 5€</p>
+        <p className="mb-2">Tax: {singleOrder.subtotal / 5}€</p>
         <p className="mb-2">
-          Total: $
-          {(singleOrder.subtotal + 5 + singleOrder.subtotal / 5).toFixed(2)}
+          Total: {(singleOrder.subtotal + 5 + singleOrder.subtotal / 5).toFixed(2)}€
         </p>
         <p className="mb-2">Status: {singleOrder.orderStatus}</p>
         <h3 className="text-xl font-semibold mt-6 mb-4">Items</h3>
         <table className="singleOrder-table min-w-full bg-white border border-gray-200">
           <thead>
             <tr>
-              <th className="py-3 px-4 border-b">Product Name</th>
+              <th className="py-3 px-4 border-b text-left">Product Name</th>
+              <th className="py-3 px-4 border-b">Size</th>
+              <th className="py-3 px-4 border-b">Color</th>
               <th className="py-3 px-4 border-b">Quantity</th>
-              <th className="py-3 px-4 border-b">Price</th>
+              <th className="py-3 px-4 border-b text-right">Price</th>
             </tr>
           </thead>
           <tbody>
             {singleOrder.products.map((product) => (
               <tr key={nanoid()}>
                 <td className="py-3 px-4 border-b">{product?.title}</td>
+                <td className="py-3 px-4 border-b text-center uppercase">
+                  {product?.size || "—"}
+                </td>
+                <td className="py-3 px-4 border-b text-center capitalize">
+                  {product?.color || "—"}
+                </td>
                 <td className="py-3 px-4 border-b text-center">
                   {product?.quantity}
                 </td>

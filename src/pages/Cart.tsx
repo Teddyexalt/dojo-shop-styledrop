@@ -10,10 +10,29 @@ import {
   updateProductQuantity,
 } from "../features/cart/cartSlice";
 import toast from "react-hot-toast";
+import { useMemo } from "react";
+
+type GroupedCartItem = {
+  baseId: string;
+  variants: ProductInCart[];
+};
 
 const Cart = () => {
   const { productsInCart, subtotal } = useAppSelector((state) => state.cart);
   const dispatch = useAppDispatch();
+
+  const groupedItems = useMemo<GroupedCartItem[]>(() => {
+    const groups: Record<string, ProductInCart[]> = {};
+    productsInCart.forEach((p) => {
+      const baseId = p.id.match(/^(\d+)/)?.[1] || p.id;
+      if (!groups[baseId]) groups[baseId] = [];
+      groups[baseId].push(p);
+    });
+    return Object.values(groups).map((variants) => ({
+      baseId: variants[0].id.match(/^(\d+)/)?.[1] || variants[0].id,
+      variants,
+    }));
+  }, [productsInCart]);
 
   return (
     <div className="bg-white mx-auto max-w-screen-2xl px-5 max-[400px]:px-3">
@@ -31,96 +50,154 @@ const Cart = () => {
               role="list"
               className="divide-y divide-gray-200 border-b border-t border-gray-200"
             >
-              {productsInCart.map((product) => (
-                <li key={product.id} className="flex py-6 sm:py-10">
-                  <div className="flex-shrink-0">
-                    <img
-                      src={product.image?.startsWith("http") || product.image?.startsWith("/") ? product.image : `/assets/${product.image}`}
-                      alt={product.title}
-                      className="h-24 w-24 object-cover object-center sm:h-48 sm:w-48"
-                    />
-                  </div>
+              {groupedItems.map(({ baseId, variants }) => {
+                const first = variants[0];
+                const isTeamGroup = variants.length > 1;
+                const groupSubtotal = variants.reduce(
+                  (acc, v) => acc + v.price * v.quantity,
+                  0
+                );
+                const imgSrc =
+                  first.image?.startsWith("http") || first.image?.startsWith("/")
+                    ? first.image
+                    : `/assets/${first.image}`;
 
-                  <div className="ml-4 flex flex-1 flex-col justify-between sm:ml-6">
-                    <div className="relative pr-9 sm:grid sm:grid-cols-2 sm:gap-x-6 sm:pr-0">
+                return (
+                  <li key={baseId} className="flex py-6 sm:py-10">
+                    <div className="flex-shrink-0">
+                      <img
+                        src={imgSrc}
+                        alt={first.title}
+                        className="h-24 w-24 object-cover object-center sm:h-48 sm:w-48"
+                      />
+                    </div>
+
+                    <div className="ml-4 flex flex-1 flex-col justify-between sm:ml-6">
                       <div>
                         <div className="flex justify-between">
                           <h3 className="text-sm">
                             <Link
-                              to={`/product/${product.id}`}
+                              to={`/product/${baseId}`}
                               className="font-medium text-gray-700 hover:text-gray-800"
                             >
-                              {product.title}
+                              {first.title}
                             </Link>
                           </h3>
+                          {isTeamGroup && (
+                            <span className="ml-2 inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                              Commande équipe
+                            </span>
+                          )}
                         </div>
-                        <div className="mt-1 flex text-sm">
-                          <p className="text-gray-500">{product.color}</p>
-                          {product.size ? (
-                            <p className="ml-4 border-l border-gray-200 pl-4 text-gray-500">
-                              {product.size}
-                            </p>
-                          ) : null}
-                        </div>
-                        <p className="mt-1 text-sm font-medium text-gray-900">
-                          {product.price}€
+                        <p className="mt-1 text-sm text-gray-500 uppercase">
+                          {first.color}
                         </p>
+
+                        {isTeamGroup ? (
+                          <div className="mt-3 space-y-2">
+                            {variants.map((v) => (
+                              <div
+                                key={v.id}
+                                className="flex items-center gap-3"
+                              >
+                                <span className="w-8 text-xs font-semibold text-gray-600 uppercase">
+                                  {v.size}
+                                </span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  className="w-14 h-7 indent-1 bg-white border"
+                                  value={v.quantity}
+                                  onChange={(e) =>
+                                    dispatch(
+                                      updateProductQuantity({
+                                        id: v.id,
+                                        quantity: parseInt(e.target.value) || 1,
+                                      })
+                                    )
+                                  }
+                                />
+                                <span className="text-xs text-gray-500">
+                                  × {v.price}€ ={" "}
+                                  <strong>{v.price * v.quantity}€</strong>
+                                </span>
+                                <button
+                                  type="button"
+                                  className="text-gray-400 hover:text-gray-500"
+                                  onClick={() => {
+                                    dispatch(
+                                      removeProductFromTheCart({ id: v.id })
+                                    );
+                                    toast.error("Article retiré");
+                                  }}
+                                >
+                                  <XMarkIcon className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
+                            <p className="mt-2 text-sm font-medium text-gray-900">
+                              Sous-total :{" "}
+                              <strong>{groupSubtotal}€</strong>
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="relative mt-2 pr-9 sm:grid sm:grid-cols-2 sm:gap-x-6 sm:pr-0">
+                            <div>
+                              <p className="text-sm text-gray-500">
+                                {first.size?.toUpperCase()}
+                              </p>
+                              <p className="mt-1 text-sm font-medium text-gray-900">
+                                {first.price}€
+                              </p>
+                            </div>
+                            <div className="mt-4 sm:mt-0 sm:pr-9">
+                              <label className="mr-2 text-sm">Quantity:</label>
+                              <input
+                                type="number"
+                                min={1}
+                                className="w-16 h-7 indent-1 bg-white border"
+                                value={first.quantity}
+                                onChange={(e) =>
+                                  dispatch(
+                                    updateProductQuantity({
+                                      id: first.id,
+                                      quantity: parseInt(e.target.value) || 1,
+                                    })
+                                  )
+                                }
+                              />
+                              <div className="absolute right-0 top-0">
+                                <button
+                                  type="button"
+                                  className="-m-2 inline-flex p-2 text-gray-400 hover:text-gray-500"
+                                  onClick={() => {
+                                    dispatch(
+                                      removeProductFromTheCart({ id: first.id })
+                                    );
+                                    toast.error("Product removed from the cart");
+                                  }}
+                                >
+                                  <span className="sr-only">Remove</span>
+                                  <XMarkIcon className="h-5 w-5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
-                      <div className="mt-4 sm:mt-0 sm:pr-9">
-                        <label htmlFor="quantity mr-5">Quantity: </label>
-                        <input
-                          type="number"
-                          id="quantity"
-                          className="w-16 h-7 indent-1 bg-white border"
-                          value={product?.quantity}
-                          onChange={(e) => {
-                            dispatch(
-                              updateProductQuantity({
-                                id: product?.id,
-                                quantity: parseInt(e.target.value),
-                              })
-                            );
-                          }}
-                        />
-
-                        <div className="absolute right-0 top-0">
-                          <button
-                            type="button"
-                            className="-m-2 inline-flex p-2 text-gray-400 hover:text-gray-500"
-                            onClick={() =>{
-                              dispatch(
-                                removeProductFromTheCart({ id: product?.id })
-                              ); toast.error("Product removed from the cart");}
-                            }
-                          >
-                            <span className="sr-only">Remove</span>
-                            <XMarkIcon className="h-5 w-5" aria-hidden="true" />
-                          </button>
-                        </div>
-                      </div>
+                      <p className="mt-4 flex space-x-2 text-sm text-gray-700">
+                        {first.stock ? (
+                          <CheckIcon className="h-5 w-5 flex-shrink-0 text-green-500" />
+                        ) : (
+                          <XMarkIcon className="h-5 w-5 flex-shrink-0 text-red-600" />
+                        )}
+                        <span>{first.stock ? "In stock" : "Out of stock"}</span>
+                      </p>
                     </div>
-
-                    <p className="mt-4 flex space-x-2 text-sm text-gray-700">
-                      {product?.stock ? (
-                        <CheckIcon
-                          className="h-5 w-5 flex-shrink-0 text-green-500"
-                          aria-hidden="true"
-                        />
-                      ) : (
-                        <XMarkIcon
-                          className="h-5 w-5 flex-shrink-0 text-red-600"
-                          aria-hidden="true"
-                        />
-                      )}
-
-                      <span>
-                        {product?.stock ? "In stock" : `Out of stock`}
-                      </span>
-                    </p>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           </section>
 

@@ -29,6 +29,7 @@ interface Order {
   id: number;
   orderStatus: string;
   orderDate: string;
+  teamName?: string;
   data: {
     email: string;
   };
